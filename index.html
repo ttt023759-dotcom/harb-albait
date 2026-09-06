@@ -1,0 +1,1764 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<title>حرب البيت 3D</title>
+<style>
+html,body{margin:0;width:100%;height:100%;height:100dvh;overflow:hidden;background:#87b9df;font-family:Arial,sans-serif;touch-action:none}
+#game{position:fixed;inset:0;z-index:1}
+#game canvas{display:block;width:100%;height:100%}
+#timer{position:fixed;top:10px;left:50%;transform:translateX(-50%);margin-top:58px;z-index:5;background:#111b;color:#fff;padding:6px 14px;border-radius:10px;font-weight:bold} #hud{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:5;background:#111b;color:#fff;padding:8px 18px;border-radius:12px;text-align:center;font-weight:bold}
+#mission{position:fixed;top:10px;right:10px;z-index:5;background:#111c;color:#fff;padding:12px;border-radius:10px;text-align:right}
+#mission b{color:#ffd34d}
+#pause{position:fixed;top:10px;left:10px;z-index:6;width:45px;height:45px;border:0;border-radius:9px;background:#222c;color:#fff;font-size:22px}
+#dpad{position:fixed;bottom:calc(22px + env(safe-area-inset-bottom));left:20px;width:150px;height:150px;z-index:8}
+.dp{position:absolute;width:52px;height:52px;border:2px solid #fff;border-radius:12px;background:#222c;color:#fff;font-size:28px;touch-action:none;user-select:none}
+#up{left:49px;top:0} #down{left:49px;bottom:0} #left{left:0;top:49px} #right{right:0;top:49px}
+#fire{position:fixed;right:25px;bottom:calc(35px + env(safe-area-inset-bottom));width:82px;height:82px;touch-action:none;user-select:none;border-radius:50%;border:3px solid #fff;background:#d43b20;color:#fff;font-size:32px;z-index:8}
+#jump{position:fixed;right:125px;bottom:calc(42px + env(safe-area-inset-bottom));width:60px;height:60px;touch-action:none;user-select:none;border-radius:50%;border:2px solid #fff;background:#159447;color:#fff;font-size:25px;z-index:8}
+#look{position:fixed;right:0;top:80px;width:55%;height:62%;z-index:4}
+#cross{position:fixed;left:50%;top:52%;transform:translate(-50%,-50%);z-index:5;color:#fff;font-size:30px;text-shadow:0 2px 4px #000}
+#ammo{position:fixed;bottom:calc(15px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:7;background:#111c;color:#fff;padding:9px 18px;border-radius:10px;font-size:18px}
+#health{position:fixed;bottom:calc(8px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:260px;height:13px;background:#222;border-radius:8px;z-index:7;border:2px solid #fff}
+#hp{height:100%;width:100%;background:#2dbb51;border-radius:6px}
+#win{display:none;position:fixed;inset:0;z-index:20;background:#000b;color:#fff;align-items:center;justify-content:center;text-align:center;font-size:28px;backdrop-filter:blur(5px)}
+#win .winCard{background:#111e;border:1px solid #ffffff33;border-radius:22px;padding:28px 22px;min-width:min(82vw,360px);box-shadow:0 18px 55px #000b}
+.winBtn{display:block;width:100%;margin:10px 0;padding:14px 18px;border:0;border-radius:13px;font-size:18px;font-weight:bold;cursor:pointer}
+.winBtn.primary{background:#fff;color:#17202a}.winBtn.secondary{background:#ffffff22;color:#fff;border:1px solid #ffffff44}
+canvas{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}button{-webkit-tap-highlight-color:transparent;}
+#mainPage{position:fixed;inset:0;z-index:100;background:linear-gradient(135deg,#17202a,#314e68);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box}
+.menuCard{width:min(92vw,430px);background:#111d;color:#fff;border:1px solid #ffffff33;border-radius:22px;padding:26px;box-sizing:border-box;text-align:center;box-shadow:0 15px 45px #0008}
+.menuCard h1{margin:0 0 24px;font-size:30px}
+.menuBtn{width:100%;min-height:58px;margin:8px 0;border:0;border-radius:14px;background:#fff;color:#18222b;font-size:19px;font-weight:bold}
+.menuBtn:active{transform:scale(.98)}
+.emptyBtn{opacity:.7}
+#gamePage{display:none}
+#backHome{position:fixed;top:10px;right:10px;z-index:50;border:0;border-radius:10px;background:#222c;color:#fff;padding:11px 16px;font-size:16px;font-weight:bold}
+#mainPage,.menuCard,#gamePage{image-rendering:auto}
+
+#playersPage{
+  display:none;position:fixed;inset:0;z-index:110;
+  background:linear-gradient(135deg,#17202a,#314e68);
+  color:#fff;padding:20px;box-sizing:border-box;overflow:auto;
+}
+.playersCard{
+  width:min(92vw,430px);margin:40px auto 0;background:#111d;
+  border:1px solid #ffffff33;border-radius:22px;padding:26px;
+  box-sizing:border-box;box-shadow:0 15px 45px #0008;
+}
+.playersCard h2{margin:0 0 20px;text-align:center}
+.playerBtn{
+  width:100%;min-height:58px;margin:9px 0;border:0;border-radius:14px;
+  background:#fff;color:#18222b;font-size:18px;font-weight:bold;
+}
+#backPlayersHome{
+  position:fixed;top:10px;right:10px;z-index:120;border:0;border-radius:10px;
+  background:#222c;color:#fff;padding:11px 16px;font-size:16px;font-weight:bold;
+}
+#playerMessage{
+  margin-top:16px;padding:12px;border-radius:12px;background:#ffffff12;
+  text-align:center;min-height:22px;
+}
+
+/* إضافات النسخة المطورة */
+#scoreBox,#weaponBox,#shieldBox{
+ position:fixed;z-index:7;background:#111c;color:#fff;padding:7px 12px;
+ border-radius:10px;font-weight:bold;backdrop-filter:blur(4px)
+}
+#scoreBox{top:58px;left:10px}
+#weaponBox{top:58px;right:10px}
+#shieldBox{top:98px;left:10px}
+#weaponBtn{
+ position:fixed;right:25px;bottom:calc(130px + env(safe-area-inset-bottom));
+ z-index:8;width:70px;height:48px;border:2px solid #fff;border-radius:13px;
+ background:#222c;color:#fff;font-weight:bold;font-size:15px
+}
+
+#damageFlash{position:fixed;inset:0;z-index:15;pointer-events:none;background:#f00;opacity:0}
+
+
+/* تسجيل الدخول واللعب الجماعي */
+#loginPage{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#10151d,#263b52);padding:20px;box-sizing:border-box}
+.loginCard{width:min(92vw,430px);background:#111d;color:#fff;border:1px solid #ffffff33;border-radius:24px;padding:28px;box-sizing:border-box;text-align:center;box-shadow:0 20px 60px #0009}
+.loginCard h1{margin:0 0 8px}.loginCard p{color:#b8c1cf;margin:0 0 20px}
+#loginName,#loginPassword,#roomCode{width:100%;box-sizing:border-box;padding:14px;border-radius:12px;border:1px solid #454d60;background:#0d1118;color:#fff;font-size:17px;outline:none;margin:7px 0}
+.loginBtn{width:100%;padding:14px;margin:7px 0;border:0;border-radius:12px;font-size:17px;font-weight:bold}
+.loginBtn.primary{background:#fff;color:#18222b}
+#loginMsg,#netStatus{margin-top:12px;padding:10px;border-radius:10px;background:#ffffff12;min-height:20px;color:#dce5f0}
+#onlinePage{display:none;position:fixed;inset:0;z-index:500;background:linear-gradient(135deg,#17202a,#314e68);color:#fff;padding:20px;box-sizing:border-box;overflow:auto}
+.onlineCard{width:min(92vw,440px);margin:40px auto;background:#111d;border:1px solid #ffffff33;border-radius:22px;padding:24px;box-sizing:border-box}
+.onlineCard h2{text-align:center;margin:0 0 18px}.roomCodeBox{font-size:28px;letter-spacing:4px;text-align:center;padding:14px;background:#0005;border-radius:12px;margin:12px 0;font-weight:bold}
+.smallBtn{width:100%;padding:12px;margin:6px 0;border:0;border-radius:11px;font-weight:bold;font-size:16px}
+#remoteBadge{display:none;position:fixed;top:110px;right:10px;z-index:9;background:#0b7a43;color:#fff;padding:8px 12px;border-radius:10px;font-weight:bold}
+</style>
+
+<style id="mobileCompatibility">
+html,body{
+  width:100%;height:100%;height:100dvh;
+  min-height:100%;
+  overflow:hidden;
+  overscroll-behavior:none;
+  -webkit-overflow-scrolling:auto;
+}
+body{
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+}
+button,input{font:inherit;}
+button{
+  touch-action:manipulation;
+  -webkit-user-select:none;
+  user-select:none;
+}
+#game,#gamePage{width:100%;height:100%;height:100dvh;}
+#game canvas{
+  width:100%!important;height:100%!important;
+  display:block;
+  touch-action:none;
+}
+#dpad{
+  width:min(150px,34vw);
+  height:min(150px,34vw);
+  left:max(12px,env(safe-area-inset-left));
+  bottom:max(16px,calc(16px + env(safe-area-inset-bottom)));
+}
+.dp{
+  width:min(52px,11vw);
+  height:min(52px,11vw);
+  min-width:42px;min-height:42px;
+}
+#up{left:50%;top:0;transform:translateX(-50%)}
+#down{left:50%;bottom:0;transform:translateX(-50%)}
+#left{left:0;top:50%;transform:translateY(-50%)}
+#right{right:0;top:50%;transform:translateY(-50%)}
+#fire{
+  right:max(16px,env(safe-area-inset-right));
+  bottom:max(24px,calc(24px + env(safe-area-inset-bottom)));
+  width:min(82px,18vw);height:min(82px,18vw);
+  min-width:64px;min-height:64px;
+}
+#jump{
+  right:max(96px,calc(96px + env(safe-area-inset-right)));
+  bottom:max(30px,calc(30px + env(safe-area-inset-bottom)));
+  width:min(60px,14vw);height:min(60px,14vw);
+  min-width:50px;min-height:50px;
+}
+#look{right:0;top:70px;width:58%;height:65%;z-index:4}
+#ammo{bottom:max(8px,calc(8px + env(safe-area-inset-bottom)));font-size:clamp(14px,4vw,18px)}
+#health{bottom:max(2px,calc(2px + env(safe-area-inset-bottom)));width:min(260px,58vw)}
+#weaponBtn{
+  right:max(16px,env(safe-area-inset-right));
+  bottom:max(110px,calc(110px + env(safe-area-inset-bottom)));
+}
+#mission,#scoreBox,#weaponBox,#shieldBox{font-size:clamp(12px,3.2vw,16px)}
+@media (max-width:420px){
+  #mission{max-width:145px;padding:8px}
+  #scoreBox{top:52px}
+  #weaponBox{top:52px}
+  #shieldBox{top:88px}
+  #weaponBtn{font-size:13px;width:64px}
+}
+@media (orientation:landscape) and (max-height:520px){
+  #dpad{width:118px;height:118px}
+  .dp{width:44px;height:44px;min-width:40px;min-height:40px;font-size:22px}
+  #fire{width:68px;height:68px;min-width:60px;min-height:60px}
+  #jump{width:52px;height:52px;min-width:46px;min-height:46px}
+  #look{top:55px;height:72%}
+  #health{bottom:2px}
+  #ammo{bottom:18px}
+}
+</style>
+
+
+<style id="cloudSaveUI">
+#profileBox{
+ position:fixed;top:10px;left:65px;z-index:55;background:#111c;color:#fff;
+ padding:8px 12px;border-radius:10px;font-size:13px;max-width:45vw
+}
+#profileBox button{margin-right:6px;border:0;border-radius:8px;padding:6px 9px;font-weight:bold}
+#saveStatus{display:inline-block;margin-top:3px;color:#bcd}
+</style>
+<div id="profileBox">
+  👤 <span id="profileName">زائر</span>
+  <button id="saveCloudBtn">💾 حفظ</button>
+  <span id="saveStatus">غير محفوظ</span>
+</div>
+
+
+<style id="onlinePlayersUI">
+#onlinePlayersPanel{margin-top:16px;padding:12px;background:#0005;border-radius:14px}
+#onlinePlayersPanel h3{margin:0 0 8px;font-size:17px}
+#onlinePlayersList{display:flex;flex-direction:column;gap:6px;max-height:180px;overflow:auto}
+.online-player{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#202633;border-radius:9px}
+.online-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#25c46b;margin-left:6px}
+#refreshOnlineBtn{width:100%;padding:9px;margin-top:8px;border:0;border-radius:9px;font-weight:bold}
+</style>
+
+
+<style id="upgradeUI">
+#upgradeModal{position:fixed;inset:0;z-index:12000;display:none;align-items:center;justify-content:center;background:#000b;backdrop-filter:blur(8px);padding:16px;box-sizing:border-box}
+.upgradeBox{width:min(94vw,470px);max-height:88vh;overflow:auto;background:#111b26;color:#fff;border:1px solid #ffffff2b;border-radius:24px;padding:20px;box-shadow:0 25px 70px #000c}
+.upgradeBox h2{text-align:center;margin:0 0 8px}.upgradeSub{text-align:center;color:#b9c4d2;margin:0 0 15px}
+.upgradeTop{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:12px}
+.statPill{background:#ffffff12;border:1px solid #ffffff1c;border-radius:999px;padding:8px 12px;font-weight:bold}
+.shopGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.shopItem{background:#202938;border:1px solid #ffffff16;border-radius:16px;padding:13px;text-align:center}
+.shopItem strong{display:block;font-size:18px;margin-bottom:4px}.shopItem small{display:block;color:#aeb9c8;min-height:36px}
+.shopItem button{width:100%;margin-top:9px;padding:10px;border:0;border-radius:10px;font-weight:bold}
+.skinPreview{height:50px;border-radius:12px;margin-bottom:8px;background:linear-gradient(135deg,#4b5563,#111827);display:flex;align-items:center;justify-content:center;font-size:28px}
+#dailyBox{margin-top:14px;background:#ffffff0b;border:1px solid #ffffff16;border-radius:15px;padding:12px}
+.dailyRow{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #ffffff10}
+.dailyRow:last-child{border-bottom:0}.done{opacity:.55;text-decoration:line-through}
+#modeModal{position:fixed;inset:0;z-index:12000;display:none;align-items:center;justify-content:center;background:#000b;backdrop-filter:blur(8px);padding:16px}
+.modeBox{width:min(92vw,420px);background:#111b26;color:#fff;border-radius:22px;padding:22px;text-align:center}
+.modeBtn{width:100%;padding:14px;margin:7px 0;border:0;border-radius:13px;font-size:17px;font-weight:bold}
+#coinsGame{position:fixed;top:100px;right:10px;z-index:7;background:#111c;color:#fff;padding:7px 12px;border-radius:10px;font-weight:bold}
+#xpBox{position:fixed;top:140px;right:10px;z-index:7;background:#111c;color:#fff;padding:7px 12px;border-radius:10px;font-weight:bold}
+#toast{position:fixed;left:50%;bottom:145px;transform:translateX(-50%);z-index:15000;background:#111e;color:#fff;padding:10px 16px;border-radius:12px;opacity:0;pointer-events:none;transition:opacity .2s}
+@media(max-width:420px){.shopGrid{grid-template-columns:1fr}.upgradeBox{padding:15px}}
+</style>
+
+
+<style id="fxUI">
+#muzzleFlash{position:fixed;left:50%;top:52%;transform:translate(-50%,-50%);z-index:14;color:#ffd34d;font-size:48px;opacity:0;pointer-events:none;text-shadow:0 0 20px #fff,0 0 40px #ff8a00}
+</style>
+
+
+<style id="bigUpdateUI">
+#rankBox{position:fixed;top:180px;right:10px;z-index:7;background:#111c;color:#fff;padding:7px 12px;border-radius:10px;font-weight:bold}
+#comboBox{position:fixed;top:58px;right:50%;transform:translateX(50%);z-index:8;background:#111d;color:#ffd34d;padding:7px 14px;border-radius:999px;font-weight:bold;display:none}
+#medkitHint{position:fixed;left:50%;bottom:185px;transform:translateX(-50%);z-index:8;background:#111d;color:#fff;padding:8px 12px;border-radius:10px;display:none}
+#achievementsModal{position:fixed;inset:0;z-index:13000;display:none;align-items:center;justify-content:center;background:#000b;backdrop-filter:blur(8px);padding:16px}
+.achBox{width:min(94vw,470px);max-height:88vh;overflow:auto;background:#111b26;color:#fff;border-radius:24px;padding:20px}
+.achBox h2{text-align:center;margin:0 0 14px}
+.achItem{display:flex;justify-content:space-between;gap:10px;padding:12px;margin:7px 0;background:#202938;border-radius:13px}
+.achDone{opacity:.55}.achDone b{color:#66e28b}
+#dailyRewardModal{position:fixed;inset:0;z-index:13000;display:none;align-items:center;justify-content:center;background:#000b;backdrop-filter:blur(8px)}
+.rewardBox{width:min(90vw,380px);background:#111b26;color:#fff;border-radius:24px;padding:25px;text-align:center}
+.rewardBox .gift{font-size:65px;margin:10px}
+#timeToggle{margin-top:10px;width:100%;padding:11px;border:0;border-radius:11px;font-weight:bold}
+#breakHint{position:fixed;top:220px;left:50%;transform:translateX(-50%);z-index:8;background:#111d;color:#fff;padding:7px 12px;border-radius:10px;display:none}
+</style>
+
+
+<style id="playerIdentityUI">
+#profileModal,#playersModal{position:fixed;inset:0;z-index:14000;display:none;align-items:center;justify-content:center;background:#000b;backdrop-filter:blur(8px);padding:16px}
+.profileBox,.playersBox{width:min(94vw,470px);max-height:88vh;overflow:auto;background:#111b26;color:#fff;border-radius:24px;padding:20px;box-shadow:0 25px 70px #000c}
+.profileBox h2,.playersBox h2{text-align:center;margin:0 0 14px}
+.profileCard{background:#202938;border-radius:17px;padding:15px;text-align:center}
+.avatarBig{font-size:58px;margin:5px}
+.nameInput{width:100%;box-sizing:border-box;padding:13px;border:1px solid #ffffff22;border-radius:11px;background:#0d141d;color:#fff;margin:8px 0}
+.idCode{font-family:monospace;letter-spacing:1px;background:#0d141d;padding:10px;border-radius:10px;margin:8px 0}
+.playerRow{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#202938;border-radius:13px;padding:11px;margin:7px 0}
+.playerAvatar{font-size:27px}.playerInfo{flex:1}.playerInfo b{display:block}.playerInfo small{color:#aeb9c8}
+.onlineDot{width:9px;height:9px;border-radius:50%;background:#55d67a;display:inline-block;margin-left:5px}
+#playerTag{position:fixed;top:8px;left:10px;z-index:9;background:#111c;color:#fff;padding:7px 11px;border-radius:10px;font-weight:bold}
+#searchPlayer{width:100%;box-sizing:border-box;padding:11px;border:1px solid #ffffff22;border-radius:10px;background:#0d141d;color:#fff;margin-bottom:9px}
+</style>
+
+
+<style>
+#worldNameTag{position:fixed;z-index:6;transform:translate(-50%,-100%);padding:3px 7px;border-radius:7px;background:#0009;color:#fff;font-size:12px;font-weight:bold;pointer-events:none;display:none}
+</style>
+
+</head>
+<body>
+
+<div id="loginPage">
+  <div class="loginCard">
+    <h1>🎮 حرب البيت 3D</h1>
+    <p>أنشئ حسابًا أو سجّل دخولك للعب وحفظ تقدمك أونلاين.</p>
+    <input id="loginName" maxlength="20" placeholder="اسم المستخدم" autocomplete="username">
+    <input id="loginPassword" type="password" maxlength="100" placeholder="كلمة المرور" autocomplete="current-password">
+    <button class="loginBtn primary" id="loginBtn">🔐 تسجيل الدخول</button>
+    <button class="loginBtn" id="registerBtn">➕ إنشاء حساب جديد</button>
+    <div id="loginMsg"></div>
+  </div>
+</div>
+
+<div id="mainPage">
+  <div class="menuCard">
+    <h1>حرب البيت 3D</h1>
+    <button class="menuBtn" id="docBtn">🎮 لعب</button>
+    <button class="menuBtn" id="playersBtn">👥 إضافة صديق</button>
+    <button class="menuBtn" id="onlineBtn">🌐 لعب مع الأصدقاء</button>
+    <button class="menuBtn" id="shopBtn">🛒 المتجر</button>
+    <button class="menuBtn" id="modesBtn">🎮 أنماط اللعب</button>
+    <button class="menuBtn" id="profileBtn">👤 حسابي</button>
+    <button class="menuBtn" id="playersBtn">👥 اللاعبين</button>
+  </div>
+</div>
+
+<div id="playersPage">
+  <button id="backPlayersHome">← الرئيسية</button>
+  <div class="playersCard">
+    <h2>👥 إضافة صديق</h2>
+    <button class="playerBtn" id="addPlayerBtn">➕ إضافة لاعب</button>
+    <button class="playerBtn" id="invitePlayerBtn">📨 دعوة لاعب</button>
+    <button class="playerBtn" id="friendsBtn">👤 الأصدقاء وطلبات الصداقة</button>
+    <div id="playerMessage">اختر أحد الخيارات</div>
+  </div>
+</div>
+
+<div id="onlinePage">
+  <button id="backOnlineHome" style="position:fixed;top:10px;right:10px;z-index:510;border:0;border-radius:10px;background:#222c;color:#fff;padding:11px 16px;font-size:16px;font-weight:bold">← الرئيسية</button>
+  <div class="onlineCard">
+    <h2>🌐 اللعب مع الأصدقاء</h2>
+    <p style="text-align:center;color:#b8c1cf">أنشئ غرفة وأرسل الكود لخويك، أو أدخل كود الغرفة.</p>
+    <button class="smallBtn" id="createRoomBtn">🏠 إنشاء غرفة</button>
+    <div id="roomBox" style="display:none">
+      <div style="text-align:center">كود الغرفة:</div>
+      <div class="roomCodeBox" id="myRoomCode">------</div>
+      <button class="smallBtn" id="copyRoomBtn">📋 نسخ الكود</button>
+    </div>
+    <hr style="border:0;border-top:1px solid #ffffff18;margin:18px 0">
+    <input id="roomCode" maxlength="40" placeholder="كود الغرفة">
+    <button class="smallBtn" id="joinRoomBtn">🚪 دخول الغرفة</button>
+    <button class="smallBtn" id="startOnlineBtn" style="display:none;background:#2f80ed;color:#fff">🎮 ابدأ اللعب</button>
+    <div id="netStatus">غير متصل</div>
+<div id="onlinePlayersPanel">
+  <h3>🟢 اللاعبون أونلاين</h3>
+  <div id="onlinePlayersList"><div>جارٍ التحميل…</div></div>
+  <button id="refreshOnlineBtn">🔄 تحديث القائمة</button>
+</div>
+
+  </div>
+</div>
+
+
+<div id="upgradeModal">
+  <div class="upgradeBox">
+    <h2>🛒 المتجر والتخصيص</h2>
+    <p class="upgradeSub">طور أسلحتك، اشترِ سكنات، واجمع العملات من المباريات.</p>
+    <div class="upgradeTop">
+      <span class="statPill">🪙 <span id="coins">0</span> عملة</span>
+      <span class="statPill">⭐ مستوى <span id="level">1</span></span>
+      <span class="statPill">XP <span id="xp">0</span>/<span id="xpNext">100</span></span>
+    </div>
+    <div class="shopGrid">
+      <div class="shopItem"><div class="skinPreview">🪖</div><strong>المحارب</strong><small>السكن الأساسي</small><button data-skin="0">تجهيز</button></div>
+      <div class="shopItem"><div class="skinPreview">🥷</div><strong>النينجا</strong><small>سرعة وشكل مميز</small><button data-skin="1">🪙 100</button></div>
+      <div class="shopItem"><div class="skinPreview">🤖</div><strong>الروبوت</strong><small>شكل مستقبلي</small><button data-skin="2">🪙 200</button></div>
+      <div class="shopItem"><div class="skinPreview">👨‍🚀</div><strong>رائد الفضاء</strong><small>شكل فضائي</small><button data-skin="3">🪙 300</button></div>
+      <div class="shopItem"><strong>💥 قوة السلاح</strong><small>ترقية ضرر السلاح الأساسي +5</small><button id="damageUpgrade">🪙 150</button></div>
+      <div class="shopItem"><strong>🛡️ الدرع</strong><small>زيادة الدرع الابتدائي +10</small><button id="shieldUpgrade">🪙 120</button></div>
+    </div>
+    <div id="dailyBox">
+      <strong>📅 المهمات اليومية</strong>
+      <div class="dailyRow"><span id="missionKills">اقتل 5 أعداء</span><b id="missionKillsState">0/5</b></div>
+      <div class="dailyRow"><span id="missionShots">أطلق 20 طلقة</span><b id="missionShotsState">0/20</b></div>
+      <div class="dailyRow"><span id="missionWins">فز في مباراة</span><b id="missionWinsState">0/1</b></div>
+    </div>
+    <button class="smallBtn" id="achievementsBtn" style="background:#2f80ed;color:#fff">🏅 الإنجازات</button>
+    <button class="smallBtn" id="timeToggle" style="background:#202938;color:#fff">🌙 تغيير الوقت</button>
+    <button class="smallBtn" id="closeUpgradeBtn" style="margin-top:14px;background:#303746;color:#fff">إغلاق</button>
+  </div>
+</div>
+
+<div id="modeModal">
+  <div class="modeBox">
+    <h2>🎮 أنماط اللعب</h2>
+    <p style="color:#b9c4d2">اختر طريقة اللعب التي تناسبك.</p>
+    <button class="modeBtn" id="classicModeBtn">🏠 حرب البيت — 02:00</button>
+    <button class="modeBtn" id="timeModeBtn">⏱️ تحدي الوقت — 01:00</button>
+    <button class="modeBtn" id="closeModeBtn" style="background:#303746;color:#fff">إغلاق</button>
+  </div>
+</div>
+<div id="coinsGame">🪙 <span id="coinsGameValue">0</span></div>
+<div id="xpBox">⭐ Lv.<span id="levelGame">1</span></div>
+<div id="toast"></div>
+
+
+<div id="rankBox">🏆 <span id="rankName">برونزي</span></div>
+<div id="comboBox">🔥 كمبو ×<span id="comboValue">1</span></div>
+<div id="medkitHint">❤️ اضغط قريبًا من الإسعاف للاستعمال</div>
+<div id="breakHint">🧱 اضرب الصندوق لكسره</div>
+
+<div id="achievementsModal">
+  <div class="achBox">
+    <h2>🏅 الإنجازات</h2>
+    <div class="achItem" id="ach10"><span>🎯 أول 10 قتلات</span><b>0/10</b></div>
+    <div class="achItem" id="achHead"><span>🎯 ضربة رأس</span><b>0/1</b></div>
+    <div class="achItem" id="achCombo"><span>🔥 كمبو ×5</span><b>0/5</b></div>
+    <div class="achItem" id="achWin"><span>🏆 أول فوز</span><b>0/1</b></div>
+    <div class="achItem" id="achNoDamage"><span>🛡️ فوز بدون ضرر</span><b>0/1</b></div>
+    <button class="smallBtn" id="closeAchievementsBtn" style="background:#303746;color:#fff">إغلاق</button>
+  </div>
+</div>
+
+<div id="dailyRewardModal">
+  <div class="rewardBox">
+    <div class="gift">🎁</div>
+    <h2>مكافأة اليوم!</h2>
+    <p>حصلت على <b>100 🪙</b> و <b>50 XP ⭐</b></p>
+    <button class="smallBtn" id="claimDailyBtn" style="background:#2f80ed;color:#fff">استلام المكافأة</button>
+  </div>
+</div>
+
+
+<div id="worldNameTag"></div><div id="playerTag">👤 <span id="playerTagName">لاعب</span></div>
+
+<div id="profileModal">
+  <div class="profileBox">
+    <h2>👤 حساب اللاعب</h2>
+    <div class="profileCard">
+      <div class="avatarBig" id="profileAvatar">🪖</div>
+      <input id="playerNameInput" class="nameInput" maxlength="16" placeholder="اكتب اسمك">
+      <div class="idCode">🆔 <span id="myPlayerId">STAR_0000</span></div>
+      <p>🏆 <span id="profileRank">برونزي</span> • ⭐ Lv.<span id="profileLevel">1</span></p>
+      <button class="smallBtn" id="saveProfileBtn" style="background:#2f80ed;color:#fff">حفظ الاسم</button>
+    </div>
+    <button class="smallBtn" id="closeProfileBtn" style="margin-top:10px;background:#303746;color:#fff">إغلاق</button>
+  </div>
+</div>
+
+<div id="playersModal">
+  <div class="playersBox">
+    <h2>👥 اللاعبين</h2>
+    <input id="searchPlayer" placeholder="🔍 ابحث بالاسم أو ID">
+    <div id="playersList"></div>
+    <button class="smallBtn" id="closePlayersBtn" style="margin-top:10px;background:#303746;color:#fff">إغلاق</button>
+  </div>
+</div>
+
+<div id="gamePage">
+<button id="backHome" aria-label="العودة للرئيسية">← الرئيسية</button>
+<div id="game"></div>
+<div id="hud">0 : 0</div><div id="timer">⏱️ 02:00</div>
+<div id="mission"><b>حرب البيت</b><br>اقتل جميع الأعداء<br>الأعداء: <span id="enemies">11</span><br>🪙 +10 لكل عدو • ⭐ XP</div>
+<button id="pause">Ⅱ</button>
+<div id="cross">＋</div><div id="muzzleFlash">✦</div>
+<div id="dpad"><button class="dp" id="up">▲</button><button class="dp" id="down">▼</button><button class="dp" id="left">◀</button><button class="dp" id="right">▶</button></div>
+<button id="fire">●</button><button id="jump">⤴</button>
+<div id="look"></div>
+<div id="ammo">🔫 100 / 200</div>
+<div id="health"><div id="hp"></div></div><div id="enemyHealth" style="display:none;position:fixed;left:50%;top:62%;transform:translateX(-50%);width:180px;height:10px;background:#222;border:2px solid #fff;border-radius:8px;z-index:7"><div id="ehp" style="height:100%;width:100%;background:#e33;border-radius:6px"></div></div>
+
+<div id="scoreBox">🏆 النقاط: <span id="score">0</span></div>
+<div id="weaponBox">🔫 <span id="weaponName">بندقية</span></div>
+<div id="shieldBox">🛡️ الدرع: <span id="shield">50</span></div>
+<button id="weaponBtn">تبديل السلاح</button>
+<div id="damageFlash"></div><div id="remoteBadge">🟢 خويك داخل اللعبة</div>
+<div id="win"><div class="winCard" id="winContent"></div></div>
+<script type="module">
+document.addEventListener("gesturestart",e=>e.preventDefault(),{passive:false});
+document.addEventListener("gesturechange",e=>e.preventDefault(),{passive:false});
+document.addEventListener("gestureend",e=>e.preventDefault(),{passive:false});
+document.addEventListener("contextmenu",e=>e.preventDefault());
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x86b8df);
+scene.fog=new THREE.Fog(0x86b8df,25,65);
+const cam=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.1,100);
+cam.position.set(0,1.7,13);
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+// جودة عرض عالية تصل إلى 4K بحسب إمكانيات الجهاز.
+const deviceMemory=navigator.deviceMemory||4;
+const maxDpr=Math.min(window.devicePixelRatio||1, deviceMemory<=2 ? 1.5 : 2.5);
+renderer.setPixelRatio(maxDpr);
+renderer.setSize(innerWidth,innerHeight,false);
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.05;
+renderer.shadowMap.enabled=true; document.getElementById('game').appendChild(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xffffff,0x6d8b50,2));
+const sun=new THREE.DirectionalLight(0xffffff,2);sun.position.set(8,15,10);sun.castShadow=true;scene.add(sun);
+
+function box(x,y,z,w,h,d,c,px=0,py=0,pz=0){
+ let m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:c}));
+ m.position.set(x+px,y+py,z+pz);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m;
+}
+const grass=new THREE.Mesh(new THREE.PlaneGeometry(130,120),new THREE.MeshStandardMaterial({color:0x5d913f}));
+grass.rotation.x=-Math.PI/2;grass.position.y=0;grass.receiveShadow=true;scene.add(grass);
+
+// صخور خارج البيوت فقط
+for(const p of [[-42,.7,-12],[42,.7,-12],[-38,.7,22],[38,.7,22],[-5,.6,31],[5,.6,31]])
+ box(p[0],p[1],p[2],2.2,1.4,2.0,0x77756e);
+
+
+// بيتان متقابلان، دور واحد فقط
+const wall=0xd7c09a, trim=0x5e5040, roof=0x45413d;
+
+const doors=[];
+const solidColliders=[];
+function addSolidCollider(x,z,w,d){
+  solidColliders.push({x,z,w,d});
+}
+function makeHouse(cx,cz){
+  // جدران البيت مقسمة إلى أجزاء، مع فتحة حقيقية للباب
+  const halfW=12, halfD=8, wallH=4.2, t=.35, doorW=2.6;
+
+  // الخلف والجداران الجانبيان
+  box(cx,2.1,cz-8,24,wallH,t,wall); addSolidCollider(cx,cz-8,24,t);
+  box(cx-12,2.1,cz,t,wallH,16,wall); addSolidCollider(cx-12,cz,t,16);
+  box(cx+12,2.1,cz,t,wallH,16,wall); addSolidCollider(cx+12,cz,t,16);
+
+  // الواجهة: جزآن يمين ويسار، والوسط فتحة للباب
+  const sideW=(24-doorW)/2;
+  box(cx-(doorW+sideW)/2,2.1,cz+8,sideW,wallH,t,wall);
+  box(cx+(doorW+sideW)/2,2.1,cz+8,sideW,wallH,t,wall);
+  addSolidCollider(cx-(doorW+sideW)/2,cz+8,sideW,t);
+  addSolidCollider(cx+(doorW+sideW)/2,cz+8,sideW,t);
+
+  box(cx,4.35,cz,25,0.5,17,roof);
+
+  // باب حقيقي بمفصلة: يفتح عند الاقتراب ويغلق عند الابتعاد
+  const door=new THREE.Group();
+  door.position.set(cx-doorW/2,0,cz+8.02); // المفصلة عند الطرف الأيسر
+  const doorMat=new THREE.MeshStandardMaterial({color:0x6b4328});
+  const doorPanel=new THREE.Mesh(new THREE.BoxGeometry(doorW,3.8,.28),doorMat);
+  doorPanel.position.set(doorW/2,1.9,0);
+  door.add(doorPanel);
+  const knob=new THREE.Mesh(new THREE.SphereGeometry(.12,10,8),
+    new THREE.MeshStandardMaterial({color:0xe2c15a}));
+  knob.position.set(doorW-.55,1.9,.2); door.add(knob);
+  scene.add(door);
+  doors.push({group:door,open:0,target:0,cx:cx,cz:cz,doorW:doorW});
+
+  // شبابيك
+  for(const x of [-8,8]){
+    box(cx+x,2.25,cz+8.0,3.2,2.0,.18,0x314f60);
+    box(cx+x,2.25,cz+7.84,2.7,1.5,.08,0x8fc7dd);
+    box(cx+x,2.25,cz-8.0,3.2,2.0,.18,0x314f60);
+    box(cx+x,2.25,cz-7.84,2.7,1.5,.08,0x8fc7dd);
+  }
+  for(const zoff of [-4,0,4]){
+    box(cx-12.0,2.25,cz+zoff,.18,2.0,3.0,0x314f60);
+    box(cx+12.0,2.25,cz+zoff,.18,2.0,3.0,0x314f60);
+  }
+
+  // أرضية وغرف داخلية، والجدران الداخلية صلبة أيضاً
+  box(cx,.15,cz,23.5,.3,15.5,0x6d543d);
+  box(cx-5.5,2.1,cz,0.25,4.0,10,wall); addSolidCollider(cx-5.5,cz,0.25,10);
+  box(cx+5.5,2.1,cz,0.25,4.0,10,wall); addSolidCollider(cx+5.5,cz,0.25,10);
+  box(cx,2.1,cz-2.6,10.8,4.0,.25,wall); addSolidCollider(cx,cz-2.6,10.8,.25);
+
+  box(cx,3.8,cz+9.1,8,.25,2.2,trim);
+  box(cx-3.8,1.9,cz+9.1,.18,3.7,.18,trim);
+  box(cx+3.8,1.9,cz+9.1,.18,3.7,.18,trim);
+}
+
+// بيت يسار وبيت يمين متقابلان، وكل واحد دور واحد
+makeHouse(-36,8);
+makeHouse(36,8);
+makeHouse(0,-34);
+
+// ممر ومساحة لعب بين البيتين
+box(0,.05,4,18,.1,24,0x7d6b58);
+// ممر سري صغير تحت المنطقة الوسطى: غطاء إضافي للاستكشاف بدون أعداء جدد.
+box(0,.12,18,10,.24,8,0x5b4b3d);
+box(-5,1.2,18,.3,2.4,8,0x6d5b4a);
+box(5,1.2,18,.3,2.4,8,0x6d5b4a);
+
+
+// حصى خارج البيوت
+for(const p of [[-38,.5,8],[-30,.5,17],[-15,.5,19],[38,.5,8],[30,.5,17],[15,.5,19]])
+  box(p[0],p[1],p[2],1.7,1.0,1.5,0x77756e);
+
+// أشجار وزينة حول الماب
+function tree(x,z,scale=1){
+  const g=new THREE.Group();
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.35*scale,.45*scale,2.4*scale,10),new THREE.MeshStandardMaterial({color:0x65432a}));
+  trunk.position.y=1.2*scale; g.add(trunk);
+  const crown=new THREE.Mesh(new THREE.SphereGeometry(1.45*scale,12,10),new THREE.MeshStandardMaterial({color:0x2f6b32}));
+  crown.position.y=3.0*scale; g.add(crown);
+  g.position.set(x,0,z); scene.add(g);
+}
+for(const p of [[-48,-28,1.2],[-38,30,1],[-30,-32,.9],[-12,34,1.1],[12,34,1.1],[30,-32,.9],[38,30,1],[48,-28,1.2],[-45,5,1],[45,5,1],[-40,-12,1.1],[40,-12,1.1]]) tree(p[0],p[1],p[2]);
+
+// عشب فعلي على الأرض
+function grassTuft(x,z){
+  const g=new THREE.Group();
+  const mat=new THREE.MeshStandardMaterial({color:0x4f7f2e,side:THREE.DoubleSide});
+  for(let i=0;i<5;i++){
+    const blade=new THREE.Mesh(new THREE.PlaneGeometry(.10,.75),mat);
+    blade.position.set((i-2)*.09,.35,Math.sin(i)*.12);
+    blade.rotation.y=i*.55; blade.rotation.z=(i-2)*.10; g.add(blade);
+  }
+  g.position.set(x,0,z); scene.add(g);
+}
+for(let i=0;i<75;i++){
+  const x=-50+Math.random()*100, z=-42+Math.random()*84;
+  // نترك مساحة اللعب والبيوت أوضح
+  // منع العشب والحجارة والزينة من الظهور داخل البيوت
+  const insideHouse=[[-36,8],[36,8],[0,-34]].some(([hx,hz])=>Math.abs(x-hx)<12 && Math.abs(z-hz)<8);
+  if(insideHouse || (Math.abs(x)<14 && z>-22 && z<28)) continue;
+  grassTuft(x,z);
+}
+
+
+// ذخيرة قابلة للفتح/الجمع
+const ammoPacks=[];
+function makeAmmoPack(x,z,amount=50){
+  const g=new THREE.Group();
+  const boxMesh=new THREE.Mesh(
+    new THREE.BoxGeometry(1.5,.75,1.05),
+    new THREE.MeshStandardMaterial({color:0x355b38})
+  );
+  boxMesh.position.y=.42;
+  g.add(boxMesh);
+
+  const stripe=new THREE.Mesh(
+    new THREE.BoxGeometry(.22,.78,1.08),
+    new THREE.MeshStandardMaterial({color:0xd7b52a})
+  );
+  stripe.position.y=.42;
+  g.add(stripe);
+
+  const label=new THREE.Mesh(
+    new THREE.PlaneGeometry(1.1,.35),
+    new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide})
+  );
+  label.position.set(0,.86,0);
+  label.rotation.x=-Math.PI/2;
+  g.add(label);
+
+  g.position.set(x,0,z);
+  scene.add(g);
+  ammoPacks.push({group:g,amount,opened:false});
+}
+
+// إسعافات قابلة للجمع.
+const medkits=[];
+function makeMedkit(x,z){
+  const g=new THREE.Group();
+  const boxM=new THREE.Mesh(new THREE.BoxGeometry(1.1,.7,.8),new THREE.MeshStandardMaterial({color:0xe9e9e9}));
+  boxM.position.y=.4;g.add(boxM);
+  const crossM=new THREE.Mesh(new THREE.BoxGeometry(.18,.5,.08),new THREE.MeshStandardMaterial({color:0xd33}));
+  crossM.position.set(0,.78,.42);g.add(crossM);
+  const crossM2=crossM.clone();crossM2.rotation.z=Math.PI/2;g.add(crossM2);
+  g.position.set(x,0,z);scene.add(g);medkits.push({group:g,used:false});
+}
+[[-8,2],[8,2],[-25,25],[25,25]].forEach(p=>makeMedkit(p[0],p[1]));
+
+const breakableCrates=[];
+function makeBreakableCrate(x,z){
+  const g=new THREE.Group();
+  const m=new THREE.Mesh(new THREE.BoxGeometry(1.5,1.5,1.5),new THREE.MeshStandardMaterial({color:0x8b5a2b}));
+  m.position.y=.75;g.add(m);g.position.set(x,0,z);scene.add(g);
+  breakableCrates.push({group:g,hp:2});
+}
+[[-12,28],[12,28],[-28,0],[28,0],[0,28]].forEach(p=>makeBreakableCrate(p[0],p[1]));
+
+[
+  [-17,2,50], [17,2,50],
+  [-42,12,50], [42,12,50],
+  [-18,-18,50], [18,-18,50]
+].forEach(p=>makeAmmoPack(p[0],p[1],p[2]));
+
+function updateAmmoUI(){
+  document.getElementById('ammo').textContent='🔫 '+ammo+' / '+reserveAmmo;
+}
+
+
+function collectMedkits(){
+  for(const kit of medkits){
+    if(kit.used||!kit.group.visible)continue;
+    if(kit.group.position.distanceTo(player.position)<2.0 && playerHP<100){
+      playerHP=Math.min(100,playerHP+30);kit.used=true;kit.group.visible=false;
+      document.getElementById('hp').style.width=playerHP+'%';showToast('❤️ +30 صحة');
+    }
+  }
+}
+function hitBreakableCrates(){
+  const origin=cam.position.clone(),dir=new THREE.Vector3(0,0,-1).applyQuaternion(cam.quaternion).normalize();
+  for(const c of breakableCrates){
+    if(!c.group.visible)continue;
+    const to=c.group.position.clone().add(new THREE.Vector3(0,.7,0)).sub(origin),dist=to.length();to.normalize();
+    if(dist<12 && to.dot(dir)>.985){c.hp--; if(c.hp<=0){c.group.visible=false;addCoins(25);addXP(10);showToast('🧱 صندوق انكسر! +25 🪙');} return true;}
+  }
+  return false;
+}
+
+function collectAmmoPacks(){
+  for(const pack of ammoPacks){
+    if(pack.opened || !pack.group.visible) continue;
+    if(pack.group.position.distanceTo(player.position)<2.2){
+      pack.opened=true;
+      reserveAmmo=Math.min(200,reserveAmmo+pack.amount);
+      pack.group.visible=false;
+      updateAmmoUI();
+    }
+  }
+}
+
+// تصادم الأعداء مع الجدران والالتزام بالدخول من الباب فقط
+function pointHitsColliderForEnemy(x,z,r=.38){
+  return pointHitsCollider(x,z,r);
+}
+function moveEnemyWithCollision(enemy,dx,dz){
+  const r=.38;
+  const nx=enemy.position.x+dx;
+  if(!pointHitsColliderForEnemy(nx,enemy.position.z,r)) enemy.position.x=nx;
+  const nz=enemy.position.z+dz;
+  if(!pointHitsColliderForEnemy(enemy.position.x,nz,r)) enemy.position.z=nz;
+}
+function nearestHouseDoorWaypoint(enemy){
+  // إذا كان اللاعب داخل بيت، يتجه العدو إلى الباب أولاً بدل اختراق الجدار.
+  const houses=[[-36,8],[36,8],[0,-34]];
+  for(const [hx,hz] of houses){
+    const playerInside=Math.abs(player.position.x-hx)<11.4 && Math.abs(player.position.z-hz)<7.4;
+    const enemyInside=Math.abs(enemy.position.x-hx)<11.4 && Math.abs(enemy.position.z-hz)<7.4;
+    if(playerInside && !enemyInside) return new THREE.Vector3(hx,hz+9.2,0);
+    if(!playerInside && enemyInside) return new THREE.Vector3(hx,hz+9.2,0);
+  }
+  return null;
+}
+
+// تصادم اللاعب مع الجدران: لا يمكن اختراق أي جدار
+function pointHitsCollider(x,z,r=.42){
+  for(const c of solidColliders){
+    const nx=Math.max(c.x-c.w/2,Math.min(x,c.x+c.w/2));
+    const nz=Math.max(c.z-c.d/2,Math.min(z,c.z+c.d/2));
+    const dx=x-nx, dz=z-nz;
+    if(dx*dx+dz*dz<r*r) return true;
+  }
+  return false;
+}
+function movePlayerWithCollision(dx,dz){
+  const r=.42;
+  const nx=player.position.x+dx;
+  if(!pointHitsCollider(nx,player.position.z,r)) player.position.x=nx;
+  const nz=player.position.z+dz;
+  if(!pointHitsCollider(player.position.x,nz,r)) player.position.z=nz;
+}
+function updateDoors(dt){
+  for(const d of doors){
+    const dist=Math.hypot(player.position.x-d.cx,player.position.z-(d.cz+7));
+    d.target=dist<5.5 ? Math.PI/2 : 0;
+    d.open += (d.target-d.open)*Math.min(1,dt*7.0);
+    d.group.rotation.y=d.open;
+  }
+}
+
+// player
+const player=new THREE.Group();
+const body=box(0,1.25,0,0.75,1.5,0.5,0x20252a); body.position.set(0,1.25,0); body.parent=player;
+const head=new THREE.Mesh(new THREE.SphereGeometry(.32,16,12),new THREE.MeshStandardMaterial({color:0xc28b68}));
+head.position.y=2.25;player.add(head);
+scene.add(player);
+
+// simple rifle
+box(.45,1.55,0,.9,.12,.12,0x171717).parent=player;
+
+// enemies
+const enemies=[];
+function enemy(x,y,z){
+ const g=new THREE.Group();
+ const b=new THREE.Mesh(new THREE.CapsuleGeometry(.32,.9,4,8),new THREE.MeshStandardMaterial({color:0x9e2020}));
+ b.position.y=1.05;g.add(b);
+ const h=new THREE.Mesh(new THREE.SphereGeometry(.28,12,8),new THREE.MeshStandardMaterial({color:0xd19a7a}));
+ h.position.y=1.85;g.add(h);
+ g.position.set(x,y,z);
+ const weapon=box(.45,1.15,0,.75,.12,.12,0x171717); weapon.parent=g;
+ g.userData.hp=100; g.userData.maxHp=100; g.userData.cooldown=Math.random()*1.5;
+ scene.add(g); enemies.push(g);
+}
+enemy(-22,0,-2);enemy(22,0,-2);
+enemy(-10,0,10);enemy(10,0,10);
+enemy(-3,0,-10);enemy(3,0,-18);
+enemy(-32,0,18);enemy(32,0,18);
+enemy(-38,0,-5);enemy(38,0,-5);enemy(0,0,10);
+
+let moveX=0,moveY=0,yaw=0,pitch=0,vy=0,onGround=true,ammo=100,reserveAmmo=200,score=0,paused=false,playerHP=100;
+const held={up:false,down:false,left:false,right:false};
+function bindMove(id,dx,dy){
+  const b=document.getElementById(id);
+  const set=(v,e)=>{ if(e)e.preventDefault(); held[id]=v; };
+  b.addEventListener('pointerdown',e=>{b.setPointerCapture(e.pointerId);set(true,e)});
+  b.addEventListener('pointerup',e=>set(false,e));
+  b.addEventListener('pointercancel',e=>set(false,e));
+  b.addEventListener('pointerleave',e=>{if(e.buttons===0)set(false,e)});
+}
+bindMove('up',0,-1); bindMove('down',0,1); bindMove('left',-1,0); bindMove('right',1,0);
+
+let lastX=0,lastY=0,looking=false;
+const look=document.getElementById('look');
+look.onpointerdown=e=>{looking=true;lastX=e.clientX;lastY=e.clientY;look.setPointerCapture(e.pointerId)};
+look.onpointermove=e=>{if(!looking)return;yaw-=(e.clientX-lastX)*.006;pitch-=(e.clientY-lastY)*.004;pitch=Math.max(-1.1,Math.min(1.1,pitch));lastX=e.clientX;lastY=e.clientY};
+look.onpointerup=look.onpointercancel=()=>looking=false;
+
+document.getElementById('jump').onpointerdown=()=>{if(onGround){vy=5;onGround=false}};
+document.getElementById('pause').onclick=()=>{paused=!paused};
+
+function updateEnemyHealthBar(){
+  const bar=document.getElementById('enemyHealth');
+  const ehp=document.getElementById('ehp');
+  let nearest=null,nd=999;
+  for(const e of enemies){
+    if(!e.visible) continue;
+    const d=e.position.distanceTo(player.position);
+    if(d<nd){nd=d;nearest=e;}
+  }
+  if(nearest && nd<10){
+    bar.style.display='block';
+    ehp.style.width=Math.max(0,nearest.userData.hp/nearest.userData.maxHp*100)+'%';
+  }else{
+    bar.style.display='none';
+  }
+}
+
+const mainPage=document.getElementById('mainPage');
+const gamePage=document.getElementById('gamePage');
+
+let gameEnded=false;
+let timeLeft=120;
+let timerAccumulator=0;
+function restartGame(newTime=120){
+  document.getElementById('win').style.display='none';
+  paused=false; gameEnded=false; timeLeft=newTime; timerAccumulator=0;
+  playerHP=100; ammo=100; reserveAmmo=200; score=0; vy=0; onGround=true; shield=50+bonusShield; combo=0; comboTimer=0; roundStartHP=100;
+  player.position.set(0,0,0);
+  enemies.forEach((e,i)=>{
+    e.visible=true; e.userData.hp=e.userData.maxHp=100;
+    e.userData.cooldown=Math.random()*1.5;
+    const starts=[[-22,0,-2],[22,0,-2],[-10,0,10],[10,0,10],[-3,0,-10],[3,0,-18],[-32,0,18],[32,0,18],[-38,0,-5],[38,0,-5],[0,0,10]][i];
+    e.position.set(starts[0],starts[1],starts[2]);
+  });
+  ammoPacks.forEach(p=>{p.opened=false;p.group.visible=true;}); medkits.forEach(p=>{p.used=false;p.group.visible=true;}); breakableCrates.forEach(p=>{p.hp=2;p.group.visible=true;});
+  document.getElementById('enemies').textContent=String(enemies.length);
+  document.getElementById('hp').style.width='100%';
+  updateAmmoUI(); updateTimerUI();
+}
+function updateTimerUI(){
+  const wholeSeconds=Math.max(0,Math.ceil(timeLeft)); const m=Math.floor(wholeSeconds/60), sec=wholeSeconds%60;
+  document.getElementById('timer').textContent='⏱️ '+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+}
+function showEndScreen(won){
+  if(gameEnded)return; gameEnded=true; paused=true;
+  if(won){ daily.wins++; firstWin=1; if(playerHP>=100)noDamageWins++; addXP(50); addCoins(100); dailyCheck(); saveProgress(); updateAchievementsUI(); }
+  const win=document.getElementById('win');
+  const content=document.getElementById('winContent');
+  content.innerHTML=won
+    ? '🏆 فزت!<br><small>تم تنظيف البيت من الأعداء</small>'
+    : '💀 خسرت!<br><small>الأعداء أسقطوك</small>';
+  content.innerHTML += '<br><br><button class="winBtn primary" id="playAgainBtn">🎮 لعب مجدداً</button><button class="winBtn secondary" id="homeBtn">🏠 العودة إلى الصفحة الرئيسية</button>';
+  win.style.display='flex';
+  document.getElementById('playAgainBtn').onclick=()=>restartGame();
+  document.getElementById('homeBtn').onclick=()=>{
+    win.style.display='none';
+    gamePage.style.display='none';
+    mainPage.style.display='flex';
+  };
+}
+
+function houseAt(x,z){
+  const houses=[[-36,8],[36,8],[0,-34]];
+  for(const [hx,hz] of houses){
+    if(Math.abs(x-hx)<11.4 && Math.abs(z-hz)<7.4) return {x:hx,z:hz};
+  }
+  return null;
+}
+
+function segmentHitsWall(a,b){
+  const dx=b.x-a.x, dz=b.z-a.z;
+  const len=Math.hypot(dx,dz);
+  const steps=Math.ceil(len/0.22);
+  for(let i=1;i<steps;i++){
+    const t=i/steps;
+    if(pointHitsCollider(a.x+dx*t,a.z+dz*t,.18)) return true;
+  }
+  return false;
+}
+
+function enemyCanSeePlayer(enemy){
+  const ep=enemy.position.clone(); ep.y+=1.25;
+  const pp=player.position.clone(); pp.y+=1.25;
+
+  // إذا دخل اللاعب بيتاً، العدو يجب أن يدخل نفس البيت أولاً.
+  const ph=houseAt(player.position.x,player.position.z);
+  const eh=houseAt(enemy.position.x,enemy.position.z);
+  if(ph && (!eh || ph.x!==eh.x || ph.z!==eh.z)) return false;
+
+  // لا إطلاق نار من خلف الجدران.
+  return !segmentHitsWall(ep,pp);
+}
+
+function shoot(){
+  if(paused || playerHP<=0) return;
+
+  // تلقائي: إذا خلص المخزن، عبّه من الذخيرة الاحتياطية.
+  if(ammo<=0){
+    if(reserveAmmo<=0) return;
+    const load=Math.min(100,reserveAmmo);
+    ammo=load;
+    reserveAmmo-=load;
+  }
+
+  ammo--;
+  updateAmmoUI();
+
+  const origin=cam.position.clone();
+  const dir=new THREE.Vector3(0,0,-1).applyQuaternion(cam.quaternion).normalize();
+
+  let hit=null,best=999;
+  for(const e of enemies){
+    if(!e.visible) continue;
+    const target=e.position.clone();
+    target.y+=1.25;
+    const to=target.sub(origin);
+    const dist=to.length();
+    to.normalize();
+    const dot=to.dot(dir);
+    if(dot>0.985 && dist<35 && dist<best){
+      best=dist; hit=e;
+    }
+  }
+
+  if(hit){
+    hit.userData.hp=Math.max(0,hit.userData.hp-35);
+    hit.userData.flash=0.12;
+
+    if(hit.userData.hp<=0){
+      hit.visible=false;
+      score++;
+
+      document.getElementById('enemies').textContent=
+        String(enemies.filter(e=>e.visible).length);
+
+      if(enemies.every(e=>!e.visible)){
+        showEndScreen(true);
+      }
+    }
+  }
+}
+
+document.getElementById('fire').onpointerdown=(e)=>{
+  e.preventDefault();
+  if(!hitBreakableCrates()) shoot();
+};
+
+
+// ===== إضافات النسخة المطورة =====
+let shield=50;
+let weaponIndex=0;
+const weapons=[
+  {name:'بندقية',damage:35,ammoCost:1},
+  {name:'رشاش',damage:18,ammoCost:1},
+  {name:'قناص',damage:70,ammoCost:2},
+  {name:'مسدس',damage:28,ammoCost:1},
+  {name:'شوتقن',damage:90,ammoCost:3}
+];
+
+let coins=Number(localStorage.getItem('houseWarCoins')||0);
+let xp=Number(localStorage.getItem('houseWarXP')||0);
+let level=Number(localStorage.getItem('houseWarLevel')||1);
+let skinIndex=Number(localStorage.getItem('houseWarSkin')||0);
+let bonusDamage=Number(localStorage.getItem('houseWarDamageBonus')||0);
+let bonusShield=Number(localStorage.getItem('houseWarShieldBonus')||0);
+let daily=JSON.parse(localStorage.getItem('houseWarDaily')||'null');
+const todayKey=new Date().toISOString().slice(0,10);
+if(!daily || daily.date!==todayKey) daily={date:todayKey,kills:0,shots:0,wins:0};
+let headshots=Number(localStorage.getItem('houseWarHeadshots')||0);
+let bestCombo=Number(localStorage.getItem('houseWarBestCombo')||0);
+let totalKills=Number(localStorage.getItem('houseWarTotalKills')||0);
+let noDamageWins=Number(localStorage.getItem('houseWarNoDamageWins')||0);
+let firstWin=Number(localStorage.getItem('houseWarFirstWin')||0);
+let dailyRewardClaimed=localStorage.getItem('houseWarDailyReward')===todayKey;
+let combo=0, comboTimer=0, roundStartHP=100;
+let worldTime=Number(localStorage.getItem('houseWarWorldTime')||0);
+let playerId=localStorage.getItem('houseWarPlayerId');
+if(!playerId){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code=''; for(let i=0;i<6;i++) code+=chars[Math.floor(Math.random()*chars.length)];
+  playerId='STAR_'+code; localStorage.setItem('houseWarPlayerId',playerId);
+}
+let playerName=localStorage.getItem('houseWarPlayerName')||('لاعب_'+playerId.slice(-4));
+let playerRegistry=JSON.parse(localStorage.getItem('houseWarPlayers')||'[]');
+function saveIdentity(){
+  localStorage.setItem('houseWarPlayerName',playerName);
+  const me={id:playerId,name:playerName,level,rank:rankForLevel(level),skin:skinIndex,lastSeen:Date.now()};
+  const i=playerRegistry.findIndex(p=>p.id===playerId);
+  if(i>=0)playerRegistry[i]=me;else playerRegistry.push(me);
+  // Keep a reasonable local list.
+  playerRegistry=playerRegistry.slice(-50);
+  localStorage.setItem('houseWarPlayers',JSON.stringify(playerRegistry));
+}
+function refreshIdentityUI(){
+  const nameEl=document.getElementById('playerTagName'); if(nameEl)nameEl.textContent=playerName;
+  const idEl=document.getElementById('myPlayerId'); if(idEl)idEl.textContent=playerId;
+  const inp=document.getElementById('playerNameInput'); if(inp)inp.value=playerName;
+  const av=document.getElementById('profileAvatar'); if(av)av.textContent=['🪖','🥷','🤖','👨‍🚀'][skinIndex]||'🪖';
+  const r=document.getElementById('profileRank'); if(r)r.textContent=rankForLevel(level);
+  const l=document.getElementById('profileLevel'); if(l)l.textContent=level;
+}
+function renderPlayers(filter=''){
+  saveIdentity();
+  const list=document.getElementById('playersList');if(!list)return;
+  const q=filter.trim().toLowerCase();
+  const arr=playerRegistry.filter(p=>(p.name+' '+p.id).toLowerCase().includes(q));
+  list.innerHTML=arr.length?arr.map(p=>`
+    <div class="playerRow">
+      <span class="playerAvatar">${['🪖','🥷','🤖','👨‍🚀'][p.skin]||'🪖'}</span>
+      <div class="playerInfo"><b>${escapeHtml(p.name)} <span class="onlineDot"></span></b><small>${escapeHtml(p.id)} • 🏆 ${escapeHtml(p.rank||'برونزي')} • Lv.${p.level||1}</small></div>
+    </div>`).join(''):'<p style="text-align:center;color:#aeb9c8">لا يوجد لاعب مطابق.</p>';
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+
+
+function saveProgress(){
+  localStorage.setItem('houseWarCoins',String(coins));
+  localStorage.setItem('houseWarXP',String(xp));
+  localStorage.setItem('houseWarLevel',String(level));
+  localStorage.setItem('houseWarSkin',String(skinIndex));
+  localStorage.setItem('houseWarDamageBonus',String(bonusDamage));
+  localStorage.setItem('houseWarShieldBonus',String(bonusShield));
+  localStorage.setItem('houseWarDaily',JSON.stringify(daily));
+  localStorage.setItem('houseWarHeadshots',String(headshots));
+  localStorage.setItem('houseWarBestCombo',String(bestCombo));
+  localStorage.setItem('houseWarTotalKills',String(totalKills));
+  localStorage.setItem('houseWarNoDamageWins',String(noDamageWins));
+  localStorage.setItem('houseWarFirstWin',String(firstWin));
+  localStorage.setItem('houseWarDailyReward',dailyRewardClaimed?todayKey:'');
+  localStorage.setItem('houseWarWorldTime',String(worldTime));
+  if(typeof saveIdentity==='function')saveIdentity();
+}
+function xpNext(){return level*100}
+function addXP(amount){
+  xp+=amount;
+  while(xp>=xpNext()){xp-=xpNext();level++;coins+=50;showToast('🎉 مستوى جديد! +50 عملة');}
+  saveProgress(); updateProgressUI();
+  updateRankUI(); updateAchievementsUI();
+}
+function addCoins(amount){coins+=amount;saveProgress();updateProgressUI()}
+function showToast(msg){
+  const t=document.getElementById('toast'); if(!t)return;
+  t.textContent=msg;t.style.opacity='1';clearTimeout(window.__toastTimer);
+  window.__toastTimer=setTimeout(()=>t.style.opacity='0',1400);
+}
+
+function rankForLevel(l){
+  if(l>=20)return 'أسطوري';
+  if(l>=12)return 'بلاتيني';
+  if(l>=7)return 'ذهبي';
+  if(l>=3)return 'فضي';
+  return 'برونزي';
+}
+function updateRankUI(){
+  const el=document.getElementById('rankName'); if(el)el.textContent=rankForLevel(level);
+}
+function updateAchievementsUI(){
+  const set=(id,done,text)=>{
+    const el=document.getElementById(id); if(!el)return;
+    el.classList.toggle('achDone',done);
+    const b=el.querySelector('b'); if(b)b.textContent=text;
+  };
+  set('ach10',totalKills>=10,Math.min(10,totalKills)+'/10');
+  set('achHead',headshots>=1,Math.min(1,headshots)+'/1');
+  set('achCombo',bestCombo>=5,Math.min(5,bestCombo)+'/5');
+  set('achWin',firstWin>=1,Math.min(1,firstWin)+'/1');
+  set('achNoDamage',noDamageWins>=1,Math.min(1,noDamageWins)+'/1');
+}
+function updateProgressUI(){
+  const ids=[['coins',coins],['coinsGameValue',coins],['xp',xp],['level',level],['levelGame',level],['xpNext',xpNext()],
+    ['missionKillsState',Math.min(5,daily.kills)+'/5'],['missionShotsState',Math.min(20,daily.shots)+'/20'],['missionWinsState',Math.min(1,daily.wins)+'/1']];
+  ids.forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.textContent=String(v)});
+  ['missionKills','missionShots','missionWins'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    if(el) el.classList.toggle('done',[daily.kills>=5,daily.shots>=20,daily.wins>=1][i]);
+  });
+}
+function dailyCheck(){
+  if(daily.kills>=5 && !daily.killsClaimed){daily.killsClaimed=true;coins+=75;showToast('🎁 مهمة القتل مكتملة +75');}
+  if(daily.shots>=20 && !daily.shotsClaimed){daily.shotsClaimed=true;coins+=50;showToast('🎁 مهمة الطلقات مكتملة +50');}
+  if(daily.wins>=1 && !daily.winsClaimed){daily.winsClaimed=true;coins+=100;showToast('🎁 مهمة الفوز مكتملة +100');}
+  saveProgress();updateProgressUI();
+}
+function cycleWeapon(){
+  weaponIndex=(weaponIndex+1)%weapons.length;
+  updateExtraUI();showToast('🔫 '+weapons[weaponIndex].name);
+}
+function updateExtraUI(){
+  document.getElementById('score').textContent=String(score);
+  document.getElementById('shield').textContent=String(shield);
+  document.getElementById('weaponName').textContent=weapons[weaponIndex].name;
+  updateProgressUI();
+}
+document.getElementById('weaponBtn').onclick=cycleWeapon;
+
+const originalShoot = shoot;
+shoot = function(){
+  if(paused || playerHP<=0 || gameEnded) return;
+  const w=weapons[weaponIndex];
+  if(ammo < w.ammoCost){
+    if(reserveAmmo<=0) return;
+    const load=Math.min(100,reserveAmmo); ammo=load; reserveAmmo-=load;
+  }
+  ammo-=w.ammoCost;
+  const mf=document.getElementById('muzzleFlash'); if(mf){mf.style.opacity='.95';setTimeout(()=>mf.style.opacity='0',70)}
+  daily.shots++; dailyCheck(); updateAmmoUI();
+
+  // صوت إطلاق بسيط بدون ملفات خارجية.
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(AC){const ac=window.__audio||(window.__audio=new AC()),o=ac.createOscillator(),g=ac.createGain();
+      o.type='square';o.frequency.value=120;g.gain.value=.035;o.connect(g);g.connect(ac.destination);
+      o.start();o.stop(ac.currentTime+.06);}
+  }catch(_){}
+
+  const origin=cam.position.clone();
+  const dir=new THREE.Vector3(0,0,-1).applyQuaternion(cam.quaternion).normalize();
+  let hit=null,best=999;
+  for(const e of enemies){
+    if(!e.visible) continue;
+    const target=e.position.clone(); target.y+=1.25;
+    const to=target.sub(origin), dist=to.length(); to.normalize();
+    const dot=to.dot(dir);
+    if(dot>0.985 && dist<40 && dist<best){best=dist;hit=e;}
+  }
+  if(hit){
+    const hitTarget=hit.position.clone();hitTarget.y+=1.25;
+    const headDist=Math.abs((cam.position.y+pitch*0)-hitTarget.y);
+    const aimPoint=hit.position.clone();aimPoint.y+=1.85;
+    const headVec=aimPoint.sub(origin).normalize();
+    const isHeadshot=headVec.dot(dir)>.998;
+    const finalDamage=(w.damage+bonusDamage)*(isHeadshot?1.8:1);
+    if(isHeadshot){headshots++;showToast('🎯 ضربة رأس!');}
+    hit.userData.hp=Math.max(0,hit.userData.hp-finalDamage);
+    hit.userData.flash=0.12;
+    if(hit.userData.hp<=0){
+      hit.visible=false; score++; daily.kills++; totalKills++; combo++; comboTimer=3; bestCombo=Math.max(bestCombo,combo); addXP(20+Math.max(0,combo-1)*5); addCoins(10+Math.max(0,combo-1)*2); updateAchievementsUI();
+      document.getElementById('enemies').textContent=String(enemies.filter(e=>e.visible).length);
+      updateExtraUI(); dailyCheck();
+      if(enemies.every(e=>!e.visible)) showEndScreen(true);
+    }
+  }
+};
+
+
+function applyWorldTime(){
+  const phases=[
+    {bg:0x86b8df, fog:0x86b8df, sun:2.0, exp:1.05},
+    {bg:0xe7a46b, fog:0xd48a72, sun:1.45, exp:.95},
+    {bg:0x17233a, fog:0x17233a, sun:.55, exp:.72}
+  ];
+  const p=phases[worldTime%phases.length];
+  scene.background.setHex(p.bg); scene.fog.color.setHex(p.fog);
+  sun.intensity=p.sun; renderer.toneMappingExposure=p.exp;
+}
+document.getElementById('timeToggle').onclick=()=>{
+  worldTime=(worldTime+1)%3; saveProgress(); applyWorldTime();
+  showToast(['☀️ نهار','🌇 غروب','🌙 ليل'][worldTime]);
+};
+document.getElementById('achievementsBtn').onclick=()=>{
+  updateAchievementsUI();document.getElementById('achievementsModal').style.display='flex';
+};
+document.getElementById('closeAchievementsBtn').onclick=()=>document.getElementById('achievementsModal').style.display='none';
+
+// ===== المتجر والسكنات =====
+function applySkin(){
+  const body=player.children.find(c=>c.isMesh && c.geometry && c.geometry.type==='BoxGeometry');
+  const headMesh=player.children.find(c=>c.isMesh && c.geometry && c.geometry.type==='SphereGeometry');
+  const colors=[0x20252a,0x263238,0x3949ab,0xeeeeee];
+  if(body && body.material) body.material.color.setHex(colors[skinIndex]||colors[0]);
+  if(headMesh && headMesh.material) headMesh.material.color.setHex(skinIndex===3?0xd9e2f0:0xc28b68);
+}
+function buySkin(i,cost){
+  if(i===0){skinIndex=0;applySkin();saveProgress();updateProgressUI();showToast('🪖 تم تجهيز المحارب');return}
+  if(skinIndex===i){showToast('✅ السكن مجهز');return}
+  const owned=JSON.parse(localStorage.getItem('houseWarSkins')||'[0]');
+  if(!owned.includes(i)){
+    if(coins<cost){showToast('🪙 ما عندك عملات كافية');return}
+    coins-=cost;owned.push(i);localStorage.setItem('houseWarSkins',JSON.stringify(owned));
+  }
+  skinIndex=i;applySkin();saveProgress();updateProgressUI();showToast('✨ تم تجهيز السكن');
+}
+document.querySelectorAll('[data-skin]').forEach(btn=>{
+  btn.onclick=()=>buySkin(Number(btn.dataset.skin),[0,100,200,300][Number(btn.dataset.skin)]);
+});
+document.getElementById('damageUpgrade').onclick=()=>{
+  if(coins<150){showToast('🪙 ما عندك عملات كافية');return}
+  coins-=150;bonusDamage+=5;saveProgress();updateProgressUI();showToast('💥 ضرر السلاح +5');
+};
+document.getElementById('shieldUpgrade').onclick=()=>{
+  if(coins<120){showToast('🪙 ما عندك عملات كافية');return}
+  coins-=120;bonusShield+=10;saveProgress();updateProgressUI();showToast('🛡️ الدرع +10');
+};
+document.getElementById('closeUpgradeBtn').onclick=()=>document.getElementById('upgradeModal').style.display='none';
+document.getElementById('shopBtn').onclick=()=>{
+  updateProgressUI();document.getElementById('upgradeModal').style.display='flex';
+};
+
+document.getElementById('modesBtn').onclick=()=>document.getElementById('modeModal').style.display='flex';
+document.getElementById('closeModeBtn').onclick=()=>document.getElementById('modeModal').style.display='none';
+document.getElementById('classicModeBtn').onclick=()=>{
+  document.getElementById('modeModal').style.display='none';
+  document.getElementById('mainPage').style.display='none';
+  document.getElementById('gamePage').style.display='block';
+  if(window.gameAPI)window.gameAPI.restartGame(120);
+};
+document.getElementById('timeModeBtn').onclick=()=>{
+  document.getElementById('modeModal').style.display='none';
+  document.getElementById('mainPage').style.display='none';
+  document.getElementById('gamePage').style.display='block';
+  if(window.gameAPI)window.gameAPI.restartGame(60);
+};
+updateExtraUI(); applySkin(); applyWorldTime(); refreshIdentityUI(); saveIdentity(); offerDailyReward();
+
+document.getElementById('profileBtn').onclick=()=>{
+  refreshIdentityUI();document.getElementById('profileModal').style.display='flex';
+};
+document.getElementById('closeProfileBtn').onclick=()=>document.getElementById('profileModal').style.display='none';
+document.getElementById('saveProfileBtn').onclick=()=>{
+  const v=document.getElementById('playerNameInput').value.trim().replace(/\s+/g,' ');
+  if(v.length<2){showToast('✏️ اكتب اسمًا من حرفين أو أكثر');return}
+  playerName=v;saveIdentity();refreshIdentityUI();document.getElementById('profileModal').style.display='none';showToast('✅ تم حفظ اسمك');
+};
+document.getElementById('playersBtn').onclick=()=>{
+  renderPlayers();document.getElementById('playersModal').style.display='flex';
+};
+document.getElementById('closePlayersBtn').onclick=()=>document.getElementById('playersModal').style.display='none';
+document.getElementById('searchPlayer').oninput=e=>renderPlayers(e.target.value);
+
+
+function offerDailyReward(){
+  if(!dailyRewardClaimed) document.getElementById('dailyRewardModal').style.display='flex';
+}
+document.getElementById('claimDailyBtn').onclick=()=>{
+  if(dailyRewardClaimed)return;
+  dailyRewardClaimed=true;coins+=100;addXP(50);saveProgress();
+  document.getElementById('dailyRewardModal').style.display='none';
+  showToast('🎁 استلمت مكافأة اليوم!');
+};
+
+
+// Upgrade enemy damage to interact with the shield first.
+const oldLoopEnemyDamage = true;
+
+// Reset extras whenever a new round starts.
+const originalRestartGame = restartGame;
+restartGame = function(){
+  originalRestartGame();
+  shield=50; weaponIndex=0;
+  updateExtraUI();
+};
+
+// Simple pickup hint.
+
+updateExtraUI();
+
+
+// ===== اللعب الجماعي الحقيقي عبر WebSocket =====
+const ONLINE_API = (localStorage.getItem('houseWarApi') || location.origin).replace(/\/$/,'');
+let onlineSocket=null, onlineRoom=null, onlineHost=false;
+const remotePlayers=new Map();
+function remoteAvatar(skin){
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.BoxGeometry(.75,1.35,.5),new THREE.MeshStandardMaterial({color:[0x20252a,0x263238,0x3949ab,0xeeeeee][skin]||0x20252a}));body.position.y=.68;g.add(body);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.3,12,10),new THREE.MeshStandardMaterial({color:skin===3?0xd9e2f0:0xc28b68}));head.position.y=1.55;g.add(head);
+  return g;
+}
+function addRemote(p){
+  if(remotePlayers.has(p.id))return;
+  const g=remoteAvatar(Number(p.skin)||0);scene.add(g);
+  remotePlayers.set(p.id,{group:g,name:p.name||'لاعب',target:{x:p.x||0,y:p.y||0,z:p.z||0,yaw:p.yaw||0},level:p.level||1});
+}
+function removeRemote(id){const r=remotePlayers.get(id);if(r){scene.remove(r.group);remotePlayers.delete(id)}}
+function connectOnline(){
+  if(onlineSocket && onlineSocket.readyState<=1)return;
+  const wsUrl=ONLINE_API.replace(/^http/,'ws');
+  try{onlineSocket=new WebSocket(wsUrl);
+    onlineSocket.onopen=()=>{const st=document.getElementById('netStatus');if(st)st.textContent='🟢 متصل بالسيرفر'};
+    onlineSocket.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch{return}
+      if(m.type==='joined'){onlineRoom=m.room;onlineHost=m.host;document.getElementById('roomBox').style.display='block';document.getElementById('myRoomCode').textContent=m.room;document.getElementById('startOnlineBtn').style.display=onlineHost?'block':'none';(m.players||[]).forEach(addRemote);}
+      if(m.type==='peer_joined')addRemote(m.player);
+      if(m.type==='peer_left')removeRemote(m.id);
+      if(m.type==='state'&&m.player){const r=remotePlayers.get(m.player.id);if(r){r.name=m.player.name;r.target=m.player;r.level=m.player.level||1}else addRemote(m.player)}
+      if(m.type==='start'){document.getElementById('onlinePage').style.display='none';document.getElementById('mainPage').style.display='none';document.getElementById('gamePage').style.display='block';restartGame(120)}
+      if(m.type==='error'){const st=document.getElementById('netStatus');if(st)st.textContent='❌ '+m.message}
+    };
+    onlineSocket.onclose=()=>{const st=document.getElementById('netStatus');if(st)st.textContent='🔴 غير متصل'};
+  }catch(e){const st=document.getElementById('netStatus');if(st)st.textContent='❌ تعذر الاتصال'}
+}
+window.hostOnlineRoom=function(){connectOnline();const wait=()=>{if(onlineSocket?.readyState===1){const code=cryptoRandomRoom();onlineRoom=code;onlineSocket.send(JSON.stringify({type:'join',room:code,id:playerId,name:playerName}));}else setTimeout(wait,100)};wait()};
+window.joinOnlineRoom=function(code){connectOnline();const wait=()=>{if(onlineSocket?.readyState===1){onlineRoom=code.toUpperCase();onlineSocket.send(JSON.stringify({type:'join',room:onlineRoom,id:playerId,name:playerName}));}else setTimeout(wait,100)};wait()};
+window.startOnlineGame=function(){if(onlineSocket?.readyState===1)onlineSocket.send(JSON.stringify({type:'start'}));};
+function cryptoRandomRoom(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<6;i++)s+=c[Math.floor(Math.random()*c.length)];return s}
+let netSendTimer=0;
+function networkTick(dt){
+  if(onlineSocket?.readyState===1 && onlineRoom){
+    netSendTimer-=dt;if(netSendTimer<=0){netSendTimer=.08;onlineSocket.send(JSON.stringify({type:'state',x:player.position.x,y:player.position.y,z:player.position.z,yaw:yaw,skin:skinIndex,level,name:playerName}));}
+  }
+  for(const [id,r] of remotePlayers){r.group.position.x+=(r.target.x-r.group.position.x)*.35;r.group.position.y+=(r.target.y-r.group.position.y)*.35;r.group.position.z+=(r.target.z-r.group.position.z)*.35;r.group.rotation.y=r.target.yaw||0;}
+}
+connectOnline();
+
+const clock=new THREE.Clock();
+
+function loop(){
+  
+const nt=document.getElementById('worldNameTag');
+if(nt && player && camera){
+  const wp=player.position.clone();wp.y+=2.4;wp.project(camera);
+  const x=(wp.x*.5+.5)*innerWidth,y=(-wp.y*.5+.5)*innerHeight;
+  nt.style.left=x+'px';nt.style.top=y+'px';nt.style.display=(wp.z<1?'block':'none');
+  nt.textContent='👤 '+playerName+' • '+playerId;
+}
+
+requestAnimationFrame(loop);
+  const dt=Math.min(clock.getDelta(),0.05);
+  networkTick(dt);
+  if(comboTimer>0){comboTimer-=dt;if(comboTimer<=0)combo=0;}
+  const cb=document.getElementById('comboBox');if(cb){cb.style.display=combo>1?'block':'none';document.getElementById('comboValue').textContent=String(combo);}
+  if(!paused && playerHP>0 && !gameEnded){ timeLeft-=dt; if(timeLeft<=0){timeLeft=0; updateTimerUI(); showEndScreen(false); renderer.render(scene,cam); return;} timerAccumulator+=dt; if(timerAccumulator>=0.25){timerAccumulator=0; updateTimerUI();} }
+  if(paused || playerHP<=0){
+    renderer.render(scene,cam);
+    return;
+  }
+
+  // حركة اللاعب
+  const speed=4.6;
+  const forward=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));
+  const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
+  const move=new THREE.Vector3();
+  move.addScaledVector(forward,(held.up?1:0)-(held.down?1:0));
+  move.addScaledVector(right,(held.right?1:0)-(held.left?1:0));
+  if(move.lengthSq()>0) move.normalize().multiplyScalar(speed*dt);
+
+  movePlayerWithCollision(move.x,move.z);
+
+  // حدود الخريطة
+  player.position.x=Math.max(-52,Math.min(52,player.position.x));
+  player.position.z=Math.max(-44,Math.min(44,player.position.z));
+
+  // قفز
+  vy-=14*dt;
+  player.position.y+=vy*dt;
+  if(player.position.y<=0){
+    player.position.y=0;
+    vy=0;
+    onGround=true;
+  }
+
+  // تحديث الباب: يفتح فقط عند الاقتراب
+  updateDoors(dt);
+
+  // الكاميرا تتبع اللاعب
+  cam.position.set(
+    player.position.x,
+    player.position.y+1.7,
+    player.position.z
+  );
+  cam.rotation.order='YXZ';
+  cam.rotation.y=yaw;
+  cam.rotation.x=pitch;
+
+  // الأعداء: مطاردة + إطلاق نار
+  for(const e of enemies){
+    if(!e.visible) continue;
+
+    // العدو يختار الباب كطريق عندما يكون هو واللاعب على جهتين مختلفتين من البيت
+    const waypoint=nearestHouseDoorWaypoint(e);
+    const targetX=waypoint ? waypoint.x : player.position.x;
+    const targetZ=waypoint ? waypoint.y : player.position.z;
+    const dx=targetX-e.position.x;
+    const dz=targetZ-e.position.z;
+    const distance=Math.hypot(player.position.x-e.position.x,player.position.z-e.position.z);
+    const targetDistance=Math.hypot(dx,dz);
+
+    if(targetDistance>1.2){
+      const inv=1/Math.max(targetDistance,0.001);
+      moveEnemyWithCollision(e,dx*inv*1.25*dt,dz*inv*1.25*dt);
+    }
+
+    e.position.x=Math.max(-52,Math.min(52,e.position.x));
+    e.position.z=Math.max(-44,Math.min(44,e.position.z));
+    e.lookAt(player.position.x,e.position.y+1,player.position.z);
+
+    e.userData.cooldown-=dt;
+    if(distance<13 && e.userData.cooldown<=0 && enemyCanSeePlayer(e)){
+      e.userData.cooldown=2.4+Math.random()*1.8;
+      if(Math.random()<0.62){
+        let damage=4;
+        const absorbed=Math.min(shield,damage);
+        shield-=absorbed; damage-=absorbed;
+        if(damage>0) playerHP=Math.max(0,playerHP-damage);
+        document.getElementById('hp').style.width=playerHP+'%';
+        updateExtraUI();
+        const flash=document.getElementById('damageFlash');
+        flash.style.opacity='0.28';
+        setTimeout(()=>flash.style.opacity='0',90);
+      }
+
+      if(playerHP<=0){
+        showEndScreen(false);
+      }
+    }
+
+    if(e.userData.flash>0){
+      e.userData.flash-=dt;
+      e.children.forEach(c=>{
+        if(c.material && c.material.emissive) c.material.emissive.setHex(0x550000);
+      });
+    }
+  }
+
+  collectAmmoPacks(); collectMedkits();
+  updateEnemyHealthBar();
+  renderer.render(scene,cam);
+}
+
+loop();
+window.gameAPI={restartGame, showEndScreen}; updateProgressUI(); applySkin();
+function resizeGame(){
+  const w=Math.max(1,window.visualViewport?.width||innerWidth);
+  const h=Math.max(1,window.visualViewport?.height||innerHeight);
+  cam.aspect=w/h;
+  cam.updateProjectionMatrix();
+  renderer.setSize(w,h,false);
+}
+addEventListener('resize',resizeGame,{passive:true});
+addEventListener('orientationchange',()=>setTimeout(resizeGame,150),{passive:true});
+if(window.visualViewport) visualViewport.addEventListener('resize',resizeGame,{passive:true});
+</script>
+</div><!-- gamePage -->
+
+<script>
+document.getElementById('docBtn').addEventListener('click',()=>{
+  document.getElementById('mainPage').style.display='none';
+  document.getElementById('playersPage').style.display='none';
+  document.getElementById('gamePage').style.display='block';
+  if(window.gameAPI) window.gameAPI.restartGame(120);
+});
+
+document.getElementById('backHome').addEventListener('click',()=>{
+  document.getElementById('gamePage').style.display='none';
+  document.getElementById('mainPage').style.display='flex';
+});
+</script>
+
+<script>
+const playersPage=document.getElementById('playersPage');
+const playersBtn=document.getElementById('playersBtn');
+const backPlayersHome=document.getElementById('backPlayersHome');
+const playerMessage=document.getElementById('playerMessage');
+
+
+
+backPlayersHome.addEventListener('click',()=>{
+  playersPage.style.display='none';
+  document.getElementById('mainPage').style.display='flex';
+});
+
+document.getElementById('addPlayerBtn').onclick=()=>{
+  playerMessage.textContent='➕ اختر لاعبًا لإضافته إلى فريقك.';
+};
+document.getElementById('invitePlayerBtn').onclick=()=>{
+  playerMessage.textContent='📨 من هنا ترسل دعوة للاعب.';
+};
+document.getElementById('friendsBtn').onclick=()=>{
+  playerMessage.textContent='👤 هنا تظهر الأصدقاء وطلبات الصداقة.';
+};
+</script>
+
+
+<style>
+#friendsModal{
+  position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.72);backdrop-filter:blur(7px);padding:20px
+}
+#friendsModal .friends-box{
+  width:min(430px,95vw);background:#151922;border:1px solid #3b4355;border-radius:22px;
+  padding:24px;color:#fff;box-shadow:0 20px 60px rgba(0,0,0,.55)
+}
+#friendsModal h2{margin:0 0 8px;text-align:center}
+#friendsModal p{color:#aeb6c7;text-align:center;margin:0 0 18px}
+#friendName{
+  width:100%;box-sizing:border-box;padding:14px;border-radius:12px;border:1px solid #454d60;
+  background:#0d1118;color:#fff;font-size:16px;outline:none
+}
+.friends-actions{display:flex;gap:10px;margin-top:12px}
+.friends-actions button{
+  flex:1;padding:13px;border:0;border-radius:12px;font-weight:700;cursor:pointer
+}
+#addFriendBtn{background:#2f80ed;color:#fff}
+#closeFriendsBtn{background:#303746;color:#fff}
+#friendsList{margin-top:18px;display:flex;flex-direction:column;gap:8px;max-height:220px;overflow:auto}
+.friend-item{
+  display:flex;align-items:center;justify-content:space-between;background:#202633;
+  padding:11px 13px;border-radius:12px
+}
+.friend-remove{background:#4a2025;color:#ffb0b0;border:0;border-radius:8px;padding:7px 10px;cursor:pointer}
+.empty-friends{text-align:center;color:#858ea0;padding:15px}
+</style>
+
+<div id="friendsModal">
+  <div class="friends-box">
+    <h2>👥 إضافة صديق</h2>
+    <p>اكتب اسم صديقك لإضافته إلى قائمة اللاعبين.</p>
+    <input id="friendName" type="text" maxlength="20" placeholder="اسم صديقك">
+    <div class="friends-actions">
+      <button id="addFriendBtn">➕ إضافة</button>
+      <button id="closeFriendsBtn">إغلاق</button>
+    </div>
+    <div id="friendsList"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const modal=document.getElementById('friendsModal');
+  const input=document.getElementById('friendName');
+  const list=document.getElementById('friendsList');
+  const add=document.getElementById('addFriendBtn');
+  const close=document.getElementById('closeFriendsBtn');
+
+  let friends=JSON.parse(localStorage.getItem('houseWarFriends')||'[]');
+
+  function renderFriends(){
+    if(!friends.length){
+      list.innerHTML='<div class="empty-friends">لا يوجد أصدقاء مضافون بعد 👤</div>';
+      return;
+    }
+    list.innerHTML=friends.map((name,i)=>`
+      <div class="friend-item">
+        <span>👤 ${name}</span>
+        <button class="friend-remove" data-i="${i}">حذف</button>
+      </div>`).join('');
+    list.querySelectorAll('.friend-remove').forEach(btn=>{
+      btn.onclick=()=>{
+        friends.splice(Number(btn.dataset.i),1);
+        localStorage.setItem('houseWarFriends',JSON.stringify(friends));
+        renderFriends();
+      };
+    });
+  }
+
+  window.openFriends=()=>{
+    modal.style.display='flex';
+    input.focus();
+    renderFriends();
+  };
+
+  add.onclick=()=>{
+    const name=input.value.trim();
+    if(!name) return;
+    if(friends.some(x=>x.toLowerCase()===name.toLowerCase())) return;
+    friends.push(name);
+    localStorage.setItem('houseWarFriends',JSON.stringify(friends));
+    input.value='';
+    renderFriends();
+  };
+
+  close.onclick=()=>modal.style.display='none';
+  modal.addEventListener('click',e=>{if(e.target===modal) modal.style.display='none'});
+  input.addEventListener('keydown',e=>{if(e.key==='Enter') add.click()});
+
+  const mainFriendsButton=document.getElementById('playersBtn');
+  if(mainFriendsButton){
+    mainFriendsButton.addEventListener('click',()=>{
+      document.getElementById('mainPage').style.display='none';
+      document.getElementById('playersPage').style.display='none';
+      openFriends();
+    });
+  }
+})();
+</script>
+
+
+<script>
+(function(){
+  const loginPage=document.getElementById('loginPage');
+  const loginName=document.getElementById('loginName');
+  const loginMsg=document.getElementById('loginMsg');
+  const onlinePage=document.getElementById('onlinePage');
+  const netStatus=document.getElementById('netStatus');
+
+  const saved=localStorage.getItem('houseWarPlayerName');
+  if(saved){loginName.value=saved;}
+
+  document.getElementById('loginBtn').onclick=()=>{
+    const n=loginName.value.trim();
+    if(!n){loginMsg.textContent='اكتب اسم اللاعب أولاً.';return;}
+    localStorage.setItem('houseWarPlayerName',n);
+    window.playerName=n;
+    loginPage.style.display='none';
+    document.getElementById('mainPage').style.display='flex';
+  };
+  loginName.addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('loginBtn').click();});
+
+  document.getElementById('onlineBtn').onclick=()=>{
+    document.getElementById('mainPage').style.display='none';
+    onlinePage.style.display='block';
+  };
+  document.getElementById('backOnlineHome').onclick=()=>{
+    onlinePage.style.display='none';
+    document.getElementById('mainPage').style.display='flex';
+  };
+  document.getElementById('createRoomBtn').onclick=()=>window.hostOnlineRoom && window.hostOnlineRoom();
+  document.getElementById('joinRoomBtn').onclick=()=>{
+    const code=document.getElementById('roomCode').value.trim();
+    if(!code){netStatus.textContent='اكتب كود الغرفة.';return;}
+    window.joinOnlineRoom && window.joinOnlineRoom(code);
+  };
+  document.getElementById('copyRoomBtn').onclick=async()=>{
+    const code=document.getElementById('myRoomCode').textContent;
+    try{await navigator.clipboard.writeText(code);netStatus.textContent='✅ تم نسخ الكود';}
+    catch(e){netStatus.textContent='الكود: '+code;}
+  };
+  document.getElementById('startOnlineBtn').onclick=()=>window.startOnlineGame && window.startOnlineGame();
+
+  // ربط الدوال من سكربت module بعد تحميلها
+  let tries=0;
+  const timer=setInterval(()=>{
+    tries++;
+    if(window.netLoginReady) clearInterval(timer);
+    if(window.hostOnlineRoom && !window.netLoginReady){
+      window.netLoginReady=true;
+      clearInterval(timer);
+    }
+    if(tries>100) clearInterval(timer);
+  },100);
+})();
+</script>
+
+
+<script>
+(function(){
+  const API_BASE = localStorage.getItem('houseWarApi') || '';
+  const loginPage=document.getElementById('loginPage');
+  const loginName=document.getElementById('loginName');
+  const loginPassword=document.getElementById('loginPassword');
+  const loginMsg=document.getElementById('loginMsg');
+  const status=document.getElementById('saveStatus');
+  const nameEl=document.getElementById('profileName');
+
+  function msg(t){if(loginMsg)loginMsg.textContent=t}
+  function statusText(t){if(status)status.textContent=t}
+  async function api(path, opts={}){
+    if(!API_BASE) throw new Error('server_missing');
+    const r=await fetch(API_BASE+path,{...opts,headers:{'Content-Type':'application/json',...(opts.headers||{})}});
+    let d={}; try{d=await r.json()}catch(e){}
+    if(!r.ok) throw new Error(d.error||'request_failed');
+    return d;
+  }
+  function enter(data){
+    localStorage.setItem('houseWarToken',data.token);
+    localStorage.setItem('houseWarPlayerName',data.user.username);
+    window.playerName=data.user.username;
+    if(nameEl)nameEl.textContent=data.user.username;
+    if(loginPage)loginPage.style.display='none';
+    const main=document.getElementById('mainPage'); if(main)main.style.display='flex';
+  }
+  async function login(){
+    const username=loginName.value.trim(), password=loginPassword.value;
+    if(!username||!password)return msg('اكتب اسم المستخدم وكلمة المرور.');
+    try{
+      msg('جارٍ تسجيل الدخول…');
+      enter(await api('/api/auth/login',{method:'POST',body:JSON.stringify({username,password})}));
+      msg('');
+    }catch(e){
+      msg(e.message==='invalid_credentials'?'❌ كلمة المرور غير صحيحة.':
+          e.message==='account_not_found'?'❌ الحساب غير موجود.':'❌ تعذر الاتصال بالسيرفر.');
+    }
+  }
+  async function register(){
+    const username=loginName.value.trim(), password=loginPassword.value;
+    if(username.length<3)return msg('اسم المستخدم 3 أحرف على الأقل.');
+    if(password.length<8)return msg('كلمة المرور 8 أحرف على الأقل.');
+    try{
+      msg('جارٍ إنشاء الحساب…');
+      enter(await api('/api/auth/register',{method:'POST',body:JSON.stringify({username,password})}));
+      msg('');
+    }catch(e){
+      msg(e.message==='username_taken'?'❌ اسم المستخدم مستخدم بالفعل.':
+          e.message==='weak_credentials'?'❌ بيانات الحساب ضعيفة.':'❌ تعذر إنشاء الحساب.');
+    }
+  }
+  document.getElementById('loginBtn')?.addEventListener('click',login);
+  document.getElementById('registerBtn')?.addEventListener('click',register);
+  loginPassword?.addEventListener('keydown',e=>{if(e.key==='Enter')login()});
+
+  window.cloudSave=async function(){
+    const token=localStorage.getItem('houseWarToken');
+    if(!token)return statusText('سجّل الدخول أولاً');
+    const profile={
+      score:Number(document.getElementById('score')?.textContent||0),
+      weapon:document.getElementById('weaponName')?.textContent||'بندقية',
+      friends:JSON.parse(localStorage.getItem('houseWarFriends')||'[]')
+    };
+    try{
+      statusText('جارٍ الحفظ…');
+      await api('/api/player/save',{method:'POST',
+        headers:{Authorization:'Bearer '+token},body:JSON.stringify(profile)});
+      statusText('☁️ تم الحفظ');
+    }catch(e){statusText('❌ تعذر الحفظ');}
+  };
+  document.getElementById('saveCloudBtn')?.addEventListener('click',window.cloudSave);
+
+  // Restore the logged-in session and show the player name.
+  (async function restore(){
+    const token=localStorage.getItem('houseWarToken');
+    if(!token||!API_BASE)return;
+    try{
+      const d=await api('/api/player/me',{headers:{Authorization:'Bearer '+token}});
+      window.playerName=d.user.username;
+      if(nameEl)nameEl.textContent=d.user.username;
+      if(loginPage)loginPage.style.display='none';
+      const main=document.getElementById('mainPage'); if(main)main.style.display='flex';
+    }catch(e){
+      localStorage.removeItem('houseWarToken');
+    }
+  })();
+})();
+</script>
+
+
+<script>
+/* إعداد السيرفر: غيّر القيمة إلى عنوان السيرفر المنشور، مثال:
+   localStorage.setItem('houseWarApi','https://your-server.example');
+*/
+</script>
+
+
+<script>
+(function(){
+  const API_BASE = localStorage.getItem('houseWarApi') || '';
+  const list = document.getElementById('onlinePlayersList');
+  const btn = document.getElementById('refreshOnlineBtn');
+
+  function name(){
+    return (window.playerName || localStorage.getItem('houseWarPlayerName') || '').trim();
+  }
+  async function heartbeat(){
+    if(!API_BASE || !name()) return;
+    try{
+      await fetch(API_BASE+'/api/online',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({name:name()})
+      });
+    }catch(e){}
+  }
+  async function refresh(){
+    if(!API_BASE){
+      list.innerHTML='<div>فعّل السيرفر لعرض اللاعبين أونلاين.</div>';
+      return;
+    }
+    try{
+      const r=await fetch(API_BASE+'/api/online');
+      if(!r.ok) throw new Error();
+      const players=await r.json();
+      if(!players.length){list.innerHTML='<div>لا يوجد لاعبون أونلاين الآن.</div>';return;}
+      list.innerHTML=players.map(p =>
+        `<div class="online-player"><span><span class="online-dot"></span>👤 ${String(p.name).replace(/[<>&"]/g,'')}</span><small>أونلاين</small></div>`
+      ).join('');
+    }catch(e){
+      list.innerHTML='<div>تعذر الاتصال بالسيرفر.</div>';
+    }
+  }
+  btn?.addEventListener('click',refresh);
+  setInterval(heartbeat,15000);
+  setInterval(refresh,10000);
+  setTimeout(()=>{heartbeat();refresh();},800);
+})();
+</script>
+
+</body></html>
